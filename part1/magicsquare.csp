@@ -1,0 +1,51 @@
+{-MCH assignment 2014, part1, Magic squares model
+-}
+-- Helper functions
+-- Definition of the 1 + 2 + 3 ... + n can be simplified to 
+-- n(n+1) / 2, but I like comprehensions 
+sumOneToN(0) = 0
+sumOneToN(n) = n + sumOneToN(n-1)
+
+-- Sum all elements in a list
+n = 3
+nsum = sumOneToN(n*n)
+
+{-
+Each poisition can only be used once, and each number can only be used once.
+From here, each row/column/diag can do any move unconstrained as when parrallel
+combined they will be limited by the Box and Number processes.
+-}
+
+
+
+channel place:positions.nums
+channel done
+
+positions = {(i,j) | i <- {1..n},j<-{1..n}}
+nums = {1..n*n}
+
+-- A box is a position in the magic square, containing some value
+--  is this neccesary?
+Box(pos) = place!pos?num -> done -> STOP -- Box(pos)
+
+-- The number process constrains the numbers being used only once.
+Number({}) = STOP
+Number(moves) = place?pos?num -> Number(diff(moves, {num}))
+
+-- Row's are indexed from top to bottom (although I suppose it doesn't matter)
+{-Row(r) =
+
+
+
+
+
+Row(r) = Row'(r, < 0 | i <- <1..n>>)
+Row'(r, cols) = == nsum & done -> STOP
+                []
+                sum != nsum & place!r?num -> Row'(r, sum+num)
+
+
+-- Col's are indexed from left to right (although I suppose it doesn't matter)
+--Cols(c) =o 
+
+-}
