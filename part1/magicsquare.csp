@@ -1,22 +1,21 @@
-{-MCH assignment 2014, part1, Magic squares model
+{- MCH assignment 2014, Part1, "Magic" Squares model
 -}
 -- Helper functions
--- Definition of the 1 + 2 + 3 ... + n can be simplified to 
--- n(n+1) / 2, but I like comprehensions 
+-- Definition of the 1 + 2 + 3 ... + n can be simplified to
+-- n(n+1) / 2, but I like comprehensions
 sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
 n = 3
 nsum = sumOneToN(n*n)
+groupSum = nsum / n
 
 {-
 Each poisition can only be used once, and each number can only be used once.
 From here, each row/column/diag can do any move unconstrained as when parrallel
 combined they will be limited by the Box and Number processes.
 -}
-
-
 
 channel place:positions.nums
 channel done
@@ -25,27 +24,42 @@ positions = {(i,j) | i <- {1..n},j<-{1..n}}
 nums = {1..n*n}
 
 -- A box is a position in the magic square, containing some value
---  is this neccesary?
+-- TODO is this neccesary?
 Box(pos) = place!pos?num -> done -> STOP -- Box(pos)
 
 -- The number process constrains the numbers being used only once.
-Number({}) = STOP
-Number(moves) = place?pos?num -> Number(diff(moves, {num}))
+Number({}) = done -> STOP
+Number(moves) = place?pos?num:moves -> Number(diff(moves, {num}))
 
--- Row's are indexed from top to bottom (although I suppose it doesn't matter)
-{-Row(r) =
+assert STOP [T= Number({1..n*n}) \ {|place|}
+
+-- Row's are indexed top to bottom, if it ever matters, their only state is the
+-- current total.  The current total limits the moves possible.
+
+max(total)=
+    if groupSum - total > n*n then
+        n*n
+    else
+        groupSum - total
+
+-- {1..0} == {} so not neccesary to have cap
+Group(boxes, total)
+     = place?pos:boxes?num:{1..max(total)} -> Group(boxes, total+num)
+
+Row(y) =
+     let
+        RowState(y, total)
+         = place?pos:{(i, y) | i <- {1..n}}?num:{1..max(total)}
+        -> RowState(y,total+num)
+     within
+        RowState(y, 0)
 
 
-
-
-
-Row(r) = Row'(r, < 0 | i <- <1..n>>)
-Row'(r, cols) = == nsum & done -> STOP
-                []
-                sum != nsum & place!r?num -> Row'(r, sum+num)
-
-
+{-
 -- Col's are indexed from left to right (although I suppose it doesn't matter)
 --Cols(c) =o 
 
 -}
+
+
+-- Diag's are done separately as ascending / and descending \
