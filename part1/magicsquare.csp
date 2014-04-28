@@ -21,11 +21,12 @@ channel place:positions.nums
 channel done
 
 positions = {(i,j) | i <- {1..n},j<-{1..n}}
+DiagAlpha = { place.(i,j).ns | ns <- {1..n}, i <- {1..n}, j <- {1..n}, i == j or i + j == n+1 }
 nums = {1..n*n}
 
 -- A box is a position in the magic square, containing some value
 -- TODO is this neccesary?
-Box(pos) = place!pos?num -> done -> STOP -- Box(pos)
+Box(pos) = place!pos?num -> STOP -- Box(pos)
 
 -- The number process constrains the numbers being used only once.
 Number({}) = done -> STOP
@@ -46,14 +47,33 @@ max(total)=
 Group(boxes, total)
      = place?pos:boxes?num:{1..max(total)} -> Group(boxes, total+num)
 
-Row(y) =
-     let
-        RowState(y, total)
-         = place?pos:{(i, y) | i <- {1..n}}?num:{1..max(total)}
-        -> RowState(y,total+num)
-     within
-        RowState(y, 0)
+Row(y) = Group({(i, y) | i <- {1..n}}, 0)
 
+Col(x) = Group({(x, j) | j <- {1..n}}, 0)
+
+DiagAsc() = Group({(i, j) | i <- {1..n}, j <- {1..n}, i == j}, 0)
+DiagDes() = Group({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1}, 0)
+
+--Puzzle1 = (Row(1) [|{|place|}|] Col(1)) [|{|place|}|] ((DiagAsc() [|{|place|}|] DiagDes) [|{|place|}|] Box(1,1))
+
+Rows = ||| i:{1..n} @ Row(i)
+Cols = ||| i:{1..n} @ Col(i)
+-- Diagnoals have to do the middle together if n is an odd number
+-- FIXME 2,2, is hardcoded, not every Diag has a middle.
+Diags = DiagAsc() [|{|place.(2,2)|}|] DiagDes()
+Boxes = [|{done}|] pos:positions @ Box(pos)
+BoxesAndNumbers = Number({1..n*n}) [|{|place|}|] Boxes
+
+-- Only work toghether on diagonal moves.
+Puzzle = ((Rows [|{|place|}|] Cols) [|DiagAlpha|] Diags ) [|{|place|}|] BoxesAndNumbers
+
+-- done is not hidden, so the trace refinement should should the steps required to complete puzzle
+
+assert STOP [T= Puzzle \ {|place|}
+
+assert STOP [T= BoxesAndNumbers \ {|place|}
+
+assert STOP [T= BoxesAndNumbers [|{|place|}|] Cols \ {|place|}
 
 {-
 -- Col's are indexed from left to right (although I suppose it doesn't matter)
