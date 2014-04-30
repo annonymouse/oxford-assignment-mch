@@ -35,25 +35,27 @@ Number(moves) = place?pos?num:moves -> Number(diff(moves, {num}))
 assert STOP [T= Number({1..n*n}) \ {|place|}
 
 -- Row's are indexed top to bottom, if it ever matters, their only state is the
--- current total.  The current total limits the moves possible.
+-- current total.  The current remainder limits the moves possible.
 
-max(total)=
-    if groupSum - total > n*n then
-        n*n
+min(a, b)=
+    if a > b then
+        b
     else
-        groupSum - total
+        a
 
 -- {1..0} == {} so not neccesary to have cap
-Group(boxes, total)
-     = place?pos:boxes?num:{1..max(total)} -> Group(boxes, total+num)
+Group(boxes, remainder)
+     = place?pos:boxes?num:{1..min(remainder, n*n)} -> Group(boxes, remainder-num)
 
-Row(y) = Group({(i, y) | i <- {1..n}}, 0)
+GroupStart(boxes) = Group(boxes, groupSum)
 
-Col(x) = Group({(x, j) | j <- {1..n}}, 0)
+Row(y) = GroupStart({(i, y) | i <- {1..n}})
+
+Col(x) = GroupStart({(x, j) | j <- {1..n}})
 
 -- FIXME diags do not neccesarily have to get to 15 with this. Invert storage?
-DiagAsc() = Group({(i, j) | i <- {1..n}, j <- {1..n}, i == j}, 0)
-DiagDes() = Group({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1}, 0)
+DiagAsc() = GroupStart({(i, j) | i <- {1..n}, j <- {1..n}, i == j})
+DiagDes() = GroupStart({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1})
 
 --Puzzle1 = (Row(1) [|{|place|}|] Col(1)) [|{|place|}|] ((DiagAsc() [|{|place|}|] DiagDes) [|{|place|}|] Box(1,1))
 
