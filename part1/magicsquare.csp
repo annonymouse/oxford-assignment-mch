@@ -46,7 +46,6 @@ min(a, b)=
 -- {1..0} == {} so not neccesary to have cap
 Group(boxes, remainder)
      = place?pos:boxes?num:{1..min(remainder, n*n)} -> Group(boxes, remainder-num)
-
 GroupStart(boxes) = Group(boxes, groupSum)
 
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
@@ -78,16 +77,3 @@ assert STOP [T= BoxesAndNumbers \ {|place|}
 
 assert STOP [T= BoxesAndNumbers [|{|place|}|] Cols \ {|place|}
 
-{-
--- Col's are indexed from left to right (although I suppose it doesn't matter)
---Cols(c) =o 
-
--}
-
-channel anEvent
-
-Test = anEvent -> done -> STOP [|{|anEvent|}|] anEvent -> STOP
-Test2 = anEvent -> STOP [|{|anEvent|}|] Test
-
-
--- Diag's are done separately as ascending / and descending \
