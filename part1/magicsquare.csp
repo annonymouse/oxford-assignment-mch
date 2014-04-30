@@ -7,7 +7,7 @@ sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
-n = 3
+n = 4
 nsum = sumOneToN(n*n)
 groupSum = nsum / n
 
@@ -21,7 +21,7 @@ channel place:positions.nums
 channel done
 
 positions = {(i,j) | i <- {1..n},j<-{1..n}}
-DiagAlpha = { place.(i,j).ns | ns <- {1..n}, i <- {1..n}, j <- {1..n}, i == j or i + j == n+1 }
+DiagAlpha = { place.(i,j).ns | ns <- {1..n*n}, i <- {1..n}, j <- {1..n}, i == j or i + j == n+1 }
 nums = {1..n*n}
 
 -- A box is a position in the magic square, containing some value
@@ -80,6 +80,11 @@ assert STOP [T= BoxesAndNumbers [|{|place|}|] Cols \ {|place|}
 --Cols(c) =o 
 
 -}
+
+channel anEvent
+
+Test = anEvent -> done -> STOP [|{|anEvent|}|] anEvent -> STOP
+Test2 = anEvent -> STOP [|{|anEvent|}|] Test
 
 
 -- Diag's are done separately as ascending / and descending \
