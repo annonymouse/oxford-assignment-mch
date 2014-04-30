@@ -7,7 +7,7 @@ sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
-n = 4
+n = 3
 nsum = sumOneToN(n*n)
 groupSum = nsum / n
 
@@ -51,6 +51,7 @@ Row(y) = Group({(i, y) | i <- {1..n}}, 0)
 
 Col(x) = Group({(x, j) | j <- {1..n}}, 0)
 
+-- FIXME diags do not neccesarily have to get to 15 with this. Invert storage?
 DiagAsc() = Group({(i, j) | i <- {1..n}, j <- {1..n}, i == j}, 0)
 DiagDes() = Group({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1}, 0)
 
