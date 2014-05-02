@@ -45,7 +45,7 @@ min(a, b)=
 
 -- {1..0} == {} so not neccesary to have cap
 Group(boxes, remainder)
-     = place?pos:boxes?num:{1..min(remainder, n*n)} -> Group(boxes, remainder-num)
+     = place?pos:boxes?num:{1..min(remainder, n*n)} -> Group(diff(boxes, {pos}), remainder-num)
 GroupStart(boxes) = Group(boxes, groupSum)
 
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
