@@ -43,7 +43,7 @@ min(a, b)=
     else
         a
 
--- {1..0} == {} so not neccesary to have cap
+-- {1..0} == {} so not neccesary to have cap.  Know move number from card(boxes)
 Group(boxes, remainder)
      = place?pos:boxes?num:{1..min(remainder, n*n)} -> Group(diff(boxes, {pos}), remainder-num)
 GroupStart(boxes) = Group(boxes, groupSum)
@@ -62,7 +62,10 @@ Rows = ||| i:{1..n} @ Row(i)
 Cols = ||| i:{1..n} @ Col(i)
 -- Diagnoals have to do the middle together if n is an odd number
 -- FIXME 2,2, is hardcoded, not every Diag has a middle.
-Diags = DiagAsc() [|{|place.(2,2)|}|] DiagDes()
+Diags = if (n % 2 == 1) then
+            DiagAsc() [|{|place.(2,2)|}|] DiagDes()
+        else
+            DiagAsc() ||| DiagDes()
 Boxes = [|{done}|] pos:positions @ Box(pos)
 BoxesAndNumbers = Number({1..n*n}) [|{|place|}|] Boxes
 
