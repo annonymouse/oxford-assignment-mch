@@ -50,13 +50,11 @@ min(a, b)=
         a
 
 -- {1..0} == {} so not neccesary to have cap.  Know move number from card(boxes)
-SubGroup(boxes, moves)
-    = place?pos:boxes?num:moves -> SubGroup(diff(boxes, {pos}), diff(moves, {num}))
-
 Group(boxes, moves)
-     = [] m:moves @ SubGroup(boxes, m)
+    = place?pos:boxes?num:moves -> Group(diff(boxes, {pos}), diff(moves, {num}))
 
-GroupStart(boxes) = Group(boxes, allGroup)
+GroupStart(boxes) = [] m:allGroup @ Group(boxes, m)
+
 
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
 
