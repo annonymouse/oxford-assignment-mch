@@ -78,7 +78,7 @@ Puzzle = ((Rows [|{|place|}|] Cols) [|DiagAlpha|] Diags ) [|{|place|}|] NumberSt
 
 assert STOP [T= Puzzle \ {|place|}
 
-assert STOP [T= BoxesAndNumbers \ {|place|}
+assert STOP [T= NumberStart \ {|place|}
 
-assert STOP [T= BoxesAndNumbers [|{|place|}|] Cols \ {|place|}
+assert STOP [T= NumberStart [|{|place|}|] Cols \ {|place|}
 
