@@ -7,7 +7,7 @@ sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
-n = 4
+n = 3
 nsum = sumOneToN(n*n)
 groupSum = nsum / n
 
@@ -42,15 +42,18 @@ assert STOP [T= NumberStart \ {|place|}
 -- Row's are indexed top to bottom, if it ever matters, their only state is the
 -- current total.  The current remainder limits the moves possible.
 
-min(a, b)=
-    if a > b then
-        b
-    else
-        a
+min(a, b)= if a > b then b else a
+
+max(a, b) = if a > b then a else b
+
+maxElem(<>, m) = m
+maxElem(l, m) = maxElem(tail(l), max(head(l), m))
+maxSet(s) = maxElem(tail(seq(s)),head(seq(s)))
 
 -- {1..0} == {} so not neccesary to have cap.  Know move number from card(boxes)
+-- Reduce moves freedome, always do in descending order
 Group(boxes, moves)
-    = place?pos:boxes?num:moves -> Group(diff(boxes, {pos}), diff(moves, {num}))
+    = place?pos:boxes!maxSet(moves) -> Group(diff(boxes, {pos}), diff(moves,{maxSet(moves)}))
 
 GroupStart(boxes) = [] m:allGroup @ Group(boxes, m)
 
