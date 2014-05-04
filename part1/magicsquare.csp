@@ -7,7 +7,7 @@ sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
-n = 3
+n = 4
 nsum = sumOneToN(n*n)
 groupSum = nsum / n
 
@@ -36,8 +36,6 @@ allGroup = {i | i <- Set({1..n*n}), card(i) == n, listSum(seq(i)) == groupSum}
 Number({},0) = done -> STOP
 Number(posis, move) = place?pos:posis!move -> Number(diff(posis, {pos}),move-1)
 NumberStart = Number(positions, n*n)
-
-assert STOP [T= NumberStart \ {|place|}
 
 -- Row's are indexed top to bottom, if it ever matters, their only state is the
 -- current total.  The current remainder limits the moves possible.
