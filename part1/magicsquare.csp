@@ -70,7 +70,7 @@ Rows = ||| i:{1..n} @ Row(i)
 Cols = ||| i:{1..n} @ Col(i)
 -- Diagnoals have to do the middle together if n is an odd number
 Diags = if (n % 2 == 1) then
-            DiagAsc() [|{|place.(2,2)|}|] DiagDes()
+            DiagAsc() [|{|place.(n/2+1,n/2+1)|}|] DiagDes()
         else
             DiagAsc() ||| DiagDes()
 
