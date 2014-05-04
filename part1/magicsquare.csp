@@ -35,10 +35,13 @@ allGroup = {i | i <- Set({1..n*n}), card(i) == n, listSum(seq(i)) == groupSum}
 Box(pos) = place!pos?num -> STOP -- Box(pos)
 
 -- The number process constrains the numbers being used only once.
-Number({}) = done -> STOP
-Number(moves) = place?pos?num:moves -> Number(diff(moves, {num}))
+-- Also that they're done in order, to avoid state space explosion
+-- And you can't do positions you've done before
+Number({},0) = done -> STOP
+Number(posis, move) = place?pos:posis!move -> Number(diff(posis, {pos}),move-1)
+NumberStart() = Number(positions, n*n)
 
-assert STOP [T= Number({1..n*n}) \ {|place|}
+assert STOP [T= NumberStart() \ {|place|}
 
 -- Row's are indexed top to bottom, if it ever matters, their only state is the
 -- current total.  The current remainder limits the moves possible.
@@ -72,7 +75,7 @@ Diags = if (n % 2 == 1) then
         else
             DiagAsc() ||| DiagDes()
 Boxes = [|{done}|] pos:positions @ Box(pos)
-BoxesAndNumbers = Number({1..n*n}) [|{|place|}|] Boxes
+BoxesAndNumbers = NumberStart() [|{|place|}|] Boxes
 
 -- Only work toghether on diagonal moves.
 Puzzle = ((Rows [|{|place|}|] Cols) [|DiagAlpha|] Diags ) [|{|place|}|] BoxesAndNumbers
