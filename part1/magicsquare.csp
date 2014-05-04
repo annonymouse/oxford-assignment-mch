@@ -51,10 +51,9 @@ maxSet(s) = maxElem(tail(seq(s)),head(seq(s)))
 
 -- {1..0} == {} so not neccesary to have cap.
 -- Reduce moves freedome, always do in descending order
-Group(boxes, moves)
-    = place?pos:boxes!maxSet(moves) -> Group(diff(boxes, {pos}), diff(moves,{maxSet(moves)}))
-
-GroupStart(boxes) = [] m:allGroup @ Group(boxes, m)
+Group(boxes, next, {{}}) = place?pos:boxes!next -> STOP
+Group(boxes, next, moves) = place?pos:boxes!next -> [] b:{maxSet(x)|x<-moves} @ Group(diff(boxes, {pos}), b, {diff(g, {b}) |g  <- moves, member(b,g)})
+GroupStart(boxes) = [] b:{maxSet(x)|x<-allGroup} @ Group(boxes, b, {diff(g, {b})| g<-allGroup, member(b,g)})
 
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
 
