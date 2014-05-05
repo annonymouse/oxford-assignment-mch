@@ -7,7 +7,7 @@ sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
-n = 4
+n = 5
 nsum = sumOneToN(n*n)
 groupSum = nsum / n
 

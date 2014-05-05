@@ -246,8 +246,8 @@ CallOver(x) = hangup.x -> Phone(x)
 -- p is a local phone and p' != p is the one it is forwarded to (if any).
 -- Parameter F is initially {}
 
-NBX0(n,F) = ring.n?y?h?c!Plus -> NBX0a(n,(y,c,h),F)
-          [] call?x:LPhones(n)!n?y?c!Plus -> NBX0a(n,(y,c,maxhop),F)
+NBX0(n,F) = ring.n?y?h?c!Plus -> NBX1(n,(y,c,h),F)
+          [] call?x:LPhones(n)!n?y?c!Plus -> NBX1(n,(y,c,maxhop),F)
           [] eforward?xx:LPhones(n)!n?yy:diff(Phones,{xx}) -> NBX0(n,plusf(xx,yy,F))
           [] ecforward?xx:LPhones(n)!n -> NBX0(n,cancf(xx,F))
 
@@ -256,12 +256,21 @@ cancf(x,F) = {(a,b) | (a,b) <- F, a!=x}
 plusf(x,y,F) = union(cancf(x,F),{(x,y)})
 
 -- Here is where FORWARDing happens:
-
-NBX0a(n,(y,c,h),F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
+-- XXX This resolves all forwarding, NBX2 goes via here when moving to state NBX1
+NBX1a(n,(y,c,h),F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
                      then
                      mc.c!Failed!Minus -> NBX0(n,F)
-                     else if not(member(y,dom(F))) then NBX1(n,(y,c,h),F)
+                     else if not(member(y,dom(F))) then
+                         mc.c!Isbusy!Minus -> NBX0(n,F) [] mc.c!Cancel!Minus -> NBX0(n,F)
                      else NBX1(n,(fwd'(y,F),c,h-1),F)
+
+NBX2a(n,(y,c,h),next,F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
+                     then
+                     mc.c!Failed!Minus -> NBX1(n,next,F)
+                     else if not(member(y,dom(F))) then 
+                         mc.c!Isbusy!Minus -> NBX1(n, next, F) [] mc.c!Cancel!Minus -> NBX1(n,next,F)
+                     else NBX2(n,(fwd'(y,F),c,h-1),next,F)
+
 
 datatype fwdres = Cycle | Succ.Phones
 
@@ -286,21 +295,18 @@ apply(F,x) = let {y} = {y' | (x',y') <- F, x'==x}
 
 NBX1(n,(y,c,h),F) = 
       ring.n?y'?h'?c'!Plus -> NBX2(n,(y,c,h),(y',c',h'),F)
-   [] local(n,y) & (called.y.n.c!Minus -> NBX0(n,F)
-                    [] busy.y.n -> (mc.c!Isbusy!Minus -> NBX0(n,F)
-                                   [] mc.c!Cancel!Minus -> NBX0(n,F)) )
+   [] local(n,y) & (called.y.n.c!Minus -> NBX0(n,F))
+                    [] busy.y.n -> NBX1a(n, (y,c,h), F)
    [] nonlocal(n,y) & ring.(n+1)%M!y!h!c!Minus -> NBX0(n,F)
    [] mc.c.Cancel!Minus -> NBX0(n,F) 
    [] eforward?xx:LPhones(n)!n?yy:diff(Phones,{xx}) -> NBX1(n,(y,c,h),plusf(xx,yy,F))
    [] ecforward?xx:LPhones(n)!n -> NBX1(n,(y,c,h),cancf(xx,F))
 
 NBX2(n,(y,c,h),(y',c',h'),F) = 
-    local(n,y) & (called.y.n.c!Minus -> NBX0a(n,(y',c',h'),F)
-                  [] busy.y.n -> 
-                        (mc.c!Isbusy!Minus -> NBX0a(n,(y',c',h'),F)
-                         [] mc.c!Cancel!Minus -> NBX0a(n,(y',c',h'),F)) )
-   [] nonlocal(n,y) & ring.(n+1)%M!y!h!c!Minus -> NBX0a(n,(y',c',h'),F)
-   [] mc.c.Cancel!Minus -> NBX0a(n,(y',c',h'),F) 
+    local(n,y) & (called.y.n.c!Minus -> NBX1(n,(y',c',h'),F))
+                  [] busy.y.n -> NBX2a(n, (y,c,h),(y',c',h'), F)
+   [] nonlocal(n,y) & ring.(n+1)%M!y!h!c!Minus -> NBX1(n,(y',c',h'),F)
+   [] mc.c.Cancel!Minus -> NBX1(n,(y',c',h'),F) 
    [] mc.c'.Cancel!Minus -> NBX1(n,(y,c,h),F) 
    [] eforward?xx:LPhones(n)!n?yy:diff(Phones,{xx}) -> NBX2(n,(y,c,h),(y',c',h'),plusf(xx,yy,F))
    [] ecforward?xx:LPhones(n)!n -> NBX2(n,(y,c,h),(y',c',h'),cancf(xx,F))
@@ -440,6 +446,8 @@ failed = {|mcp.n.Failed | n <- mcnames |}
 assert NEVS(2) [T= (Network[|{|dial.1,dial.2,dial.3|}|]STOP)\diff(Events,failed)
 
 -- Shows that calls can be successfully forwarded:
+-- This is enough to show that this can only happen when busy, as the shortest
+-- trace would not include "busy" from 1.1
 
 assert NEVS(2) [T= (Network[|{|dial.0.2,dial.1,dial.2,dial.3|}|]STOP)\diff(Events,{ringing.2})
 
