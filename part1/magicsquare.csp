@@ -7,7 +7,7 @@ sumOneToN(0) = 0
 sumOneToN(n) = n + sumOneToN(n-1)
 
 -- Sum all elements in a list
-n = 5
+n = 4
 nsum = sumOneToN(n*n)
 groupSum = nsum / n
 
@@ -88,3 +88,24 @@ assert STOP [T= Col(1) \ {|place|}
 
 assert Puzzle \Events :[divergence free]
 
+-- Magic Square with more groupings adding to the sum for 4x4, in this case the 
+-- four corners, the four centre squares, and both.  Only for n == 4
+
+corner_pos = {(1,1),(1,4),(4,4),(4,1)}
+Corners= GroupStart(corner_pos)
+CornerAlpha = {place.pos.i | pos <- corner_pos, i <- {1..n*n}}
+middle_pos = {(2,2),(2,3),(3,2),(3,3)}
+Middle = GroupStart(middle_pos)
+MiddleAlpha = {place.pos.i | pos <- middle_pos, i <- {1..n*n}}
+
+PuzzleCorners = Puzzle [|CornerAlpha|] Corners
+
+PuzzleMiddle = Puzzle [|MiddleAlpha|] Middle
+
+PuzzleBoth = PuzzleCorners [|MiddleAlpha|] Middle
+
+assert PuzzleCorners \Events :[divergence free]
+
+assert PuzzleMiddle \Events :[divergence free]
+
+assert PuzzleBoth \Events :[divergence free]
