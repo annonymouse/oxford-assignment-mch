@@ -1,91 +1,123 @@
-{- MCH assignment 2014, Part1, "Magic" Squares model
--}
--- Helper functions
--- Definition of the 1 + 2 + 3 ... + n can be simplified to
--- n(n+1) / 2, but I like comprehensions
-sumOneToN(0) = 0
-sumOneToN(n) = n + sumOneToN(n-1)
+{- 
+MCH assignment 2014, Part1, "Magic" Squares model
 
--- Sum all elements in a list
+This model defines a general "Group" process which takes a set of n positions,
+and constrains that they sum to the groupSum (n^2)(n^2 + 1) / 2n
+
+In order to reduce complexity, the set allGroup is the set of all possible
+values of n that sum to the target groupSum.  This is the set of moves that are
+tried in sequence by Group in order to limit the number of states for
+compilation efficiency as opposed to trying every possible combination of
+numbers.
+
+These Group processes can be used by the higher level processes "Row" "Col" and
+"DiagAsc/Dsc" to implement the regions that should sum to groupSum.  These are
+combined into a puzzle.
+
+-}
+-- Size of magic square
 n = 4
-nsum = sumOneToN(n*n)
-groupSum = nsum / n
 
-{-
-Each poisition can only be used once, and each number can only be used once.
-From here, each row/column/diag can do any move unconstrained as when parrallel
-combined they will be limited by the Box and Number processes.
--}
+-- Helper functions
+-- Definition of the 1 + 2 + 3 + ... + n-1 + n can be simplified to n(n+1) / 2 
+sumOneToN(i) = (i * (i+1))/2
+groupSum = sumOneToN(n*n) /n
 
+-- return the sum of the elements of a list.
+listSum(<>) = 0
+listSum(list) = head(list) + listSum(tail(list))
+
+-- generates all possible sets of 4 that sum to groupSum.
+allGroup = {i | i <- Set({1..n*n}), card(i) == n, listSum(seq(i)) == groupSum}
+
+-- Moves, and a "done" signal to know when we're finished, from spec.
 channel place:positions.nums
 channel done
 
 positions = {(i,j) | i <- {1..n},j<-{1..n}}
-DiagAlpha = { place.(i,j).ns | ns <- {1..n*n}, i <- {1..n}, j <- {1..n}, i == j or i + j == n+1 }
 nums = {1..n*n}
 
-listSum(<>) = 0
-listSum(list) = head(list) + listSum(tail(list))
-
--- Need to generate all possible orders
-allGroup = {i | i <- Set({1..n*n}), card(i) == n, listSum(seq(i)) == groupSum}
-
-
 -- The number process constrains the numbers being used only once.
--- Also that they're done in order, to avoid state space explosion
--- And you can't do positions you've done before
--- Do DFS for n > 3
+-- As an optimization, moves are done in order, as move order doesn't affect the
+-- puzzle and staves off state space explosion and compilation time.
+-- Additionally, it prevents positions being played multiple times.
+-- Once all moves are complete, done is sent and the process recurses in order
+-- to allow Depth First Search using divergence freedom tests for larger magic
+-- squares given that there are many solutions to larger puzzles.
 Number({},0) = done -> Number({}, 0)
 Number(posis, move) = place?pos:posis!move -> Number(diff(posis, {pos}),move-1)
 NumberStart = Number(positions, n*n)
 
--- Row's are indexed top to bottom, if it ever matters, their only state is the
--- current total.  The current remainder limits the moves possible.
-
+-- returns the min or max of two integers.
 min(a, b)= if a > b then b else a
 max(a, b) = if a > b then a else b
 
+-- returns the largest element from a list.
 maxElem(<>, m) = m
 maxElem(l, m) = maxElem(tail(l), max(head(l), m))
+-- returns the largest member of a set.
 maxSet(s) = maxElem(tail(seq(s)),head(seq(s)))
 
--- {1..0} == {} so not neccesary to have cap.
--- Reduce moves freedome, always do in descending order
+-- Groups simply stop when finished.  Group process takes a set of boxes to play
+-- , the next num to play, and the set of sets of remaining possible moves,
+-- after next has been emitted.
+-- The choices are that the maximum values are taken from each set and these are
+-- offered as the next move.  The set of sets of remaining moves are then overed
+-- to the next recursion of this process.  This approach was taken
+-- rather than simply allowing all moves in any order in order to provide order
+-- to the Group process and limit the number of states to aid compilation.
 Group(boxes, next, {{}}) = place?pos:boxes!next -> STOP
-Group(boxes, next, moves) = place?pos:boxes!next -> [] b:{maxSet(x)|x<-moves} @ Group(diff(boxes, {pos}), b, {diff(g, {b}) |g  <- moves, member(b,g)})
-GroupStart(boxes) = [] b:{maxSet(x)|x<-allGroup} @ Group(boxes, b, {diff(g, {b})| g<-allGroup, member(b,g)})
+Group(boxes, next, moves) =
+    place?pos:boxes!next ->
+        [] b:{maxSet(x)|x<-moves}
+            @ Group(
+                diff(boxes, {pos}), b,
+                {diff(g, {b}) |g  <- moves, member(b,g)})
 
+-- GroupStart simply initializes for a given set of boxes.  It is more or less
+-- identical to Group, however draws from the set of all possible moves adding
+-- up to groupSum.
+GroupStart(boxes) = [] b:{maxSet(x)|x<-allGroup}
+                        @ Group(boxes, b,
+                            {diff(g, {b})| g<-allGroup, member(b,g)})
+
+-- Row/Col/Diag definitions, as a Group
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
-
 Col(x) = GroupStart({(x, j) | j <- {1..n}})
-
 DiagAsc() = GroupStart({(i, j) | i <- {1..n}, j <- {1..n}, i == j})
 DiagDes() = GroupStart({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1})
 
-
+-- Parrallel combination of Rows and Cols, they do not depend on each others
+-- moves given their moves are independent.  The Rows and Cols perform
+-- all possible place events.
 Rows = ||| i:{1..n} @ Row(i)
 Cols = ||| i:{1..n} @ Col(i)
--- Diagnoals have to do the middle together if n is an odd number
+
+-- Combination of both diagonals, in an odd sized magic square the middle box
+-- is shared between the two directions, so share this, or do not.
 Diags = if (n % 2 == 1) then
             DiagAsc() [|{|place.((n/2)+1,(n/2)+1)|}|] DiagDes()
         else
             DiagAsc() ||| DiagDes()
 
--- Only work toghether on diagonal moves.
+-- The diags process does *not* contain all events, so create an alphabet to 
+-- combine with others.
+DiagAlpha = { place.(i,j).ns |
+                ns <- {1..n*n}, i <- {1..n}, j <- {1..n},
+                i == j or i + j == n+1 }
+
+-- Create a Puzzle as a combination of the constrains on Rows, Cols, Diagonals
+-- and Numbers.
 Puzzle = ((Rows [|{|place|}|] Cols) [|DiagAlpha|] Diags ) [|{|place|}|] NumberStart
 
--- done is not hidden, so the trace refinement should should the steps required to complete puzzle
-
+-- done is not hidden, so the trace refinement should should the steps required
+-- to complete puzzle
 assert STOP [T= Puzzle \ {|place|}
 
-assert STOP [T= NumberStart \ {|place|}
-
-assert STOP [T= NumberStart [|{|place|}|] Cols \ {|place|}
-
-assert STOP [T= Cols \ {|place|}
-
-assert STOP [T= Col(1) \ {|place|}
-
+-- To check quickly using depth first search for larger puzzles.  This works
+-- well for magic squares that are larger since there are many solutions with
+-- bigger n, and the number of moves is always fixed, so breadth first doesn't
+-- make sense as there will not be a "shorter" solution.
 assert Puzzle \Events :[divergence free]
 
 -- Magic Square with more groupings adding to the sum for 4x4, in this case the 
@@ -104,6 +136,9 @@ PuzzleMiddle = Puzzle [|MiddleAlpha|] Middle
 
 PuzzleBoth = PuzzleCorners [|MiddleAlpha|] Middle
 
+-- Depth first search to show various possible extra constraints on 4x4.
+-- All these assertions fail, showing the trace of a possible magic square with
+-- these properties.
 assert PuzzleCorners \Events :[divergence free]
 
 assert PuzzleMiddle \Events :[divergence free]
