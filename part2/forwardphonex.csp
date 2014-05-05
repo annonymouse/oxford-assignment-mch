@@ -255,23 +255,6 @@ cancf(x,F) = {(a,b) | (a,b) <- F, a!=x}
 
 plusf(x,y,F) = union(cancf(x,F),{(x,y)})
 
--- Here is where FORWARDing happens:
--- XXX This resolves all forwarding, NBX2 goes via here when moving to state NBX1
-NBX1a(n,(y,c,h),F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
-                     then
-                     mc.c!Failed!Minus -> NBX0(n,F)
-                     else if not(member(y,dom(F))) then
-                         mc.c!Isbusy!Minus -> NBX0(n,F) [] mc.c!Cancel!Minus -> NBX0(n,F)
-                     else NBX1(n,(fwd'(y,F),c,h-1),F)
-
-NBX2a(n,(y,c,h),next,F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
-                     then
-                     mc.c!Failed!Minus -> NBX1(n,next,F)
-                     else if not(member(y,dom(F))) then 
-                         mc.c!Isbusy!Minus -> NBX1(n, next, F) [] mc.c!Cancel!Minus -> NBX1(n,next,F)
-                     else NBX2(n,(fwd'(y,F),c,h-1),next,F)
-
-
 datatype fwdres = Cycle | Succ.Phones
 
 -- Of course a forwarding destination might be in the remit of
@@ -292,6 +275,50 @@ fwd'(x,F) = let Succ.y = fwd(x,F) within y
               
 apply(F,x) = let {y} = {y' | (x',y') <- F, x'==x}
              within y
+
+{-
+Forwarding is restricted to only occuring after busy events have been emitted by
+the source, so forwarding resolution can only occur after this.  In the case
+where a busy signal may have been sent previously, this script now uses the
+NBX1a and NBX2a processes to either send a busy if no forwarding exists, or to
+forward the call and return to the process NBX1 or NBX2 respectively in order to
+check whether the forwarding works.  This can be repeated until the ttl of the
+forwarding expires or until a call is made.  No changes are neccesary to the
+mobile-CSP portion of the code as a result.
+
+If both forms of forwarding are in use at the same time the interaction would be
+odd.  Forwarded calls would always win over busy forwarding - as they would be
+applied "first".  However in the case where a busy signal where forwarding rules
+were changed mid call, so 
+    call (which has been forwarded)  -> forward -> eforward -> busy -> ...
+the busied call would check the forwarding status again.  This is due to the
+fact that in effect, call forwarding is applied twice, once at call time
+generally, and once when a busy signal is heard.
+
+The FDR3 debugger was relatively straight forward to use here, as the majority
+of the elements of mobile-CSP syntax were hidden.  The only issue is in the dual
+naming of channels for when mobile eventt subscription should occur meant that
+you need to be aware of what is going on.  Would more renaming help here?  I
+thinks this would probably interfere with the internal workings as things were
+renamed to each other.
+
+-}
+
+-- Here is where FORWARDing happens:
+NBX1a(n,(y,c,h),F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
+                     then
+                     mc.c!Failed!Minus -> NBX0(n,F)
+                     else if not(member(y,dom(F))) then
+                         mc.c!Isbusy!Minus -> NBX0(n,F) [] mc.c!Cancel!Minus -> NBX0(n,F)
+                     else NBX1(n,(fwd'(y,F),c,h-1),F)
+
+NBX2a(n,(y,c,h),next,F) = if (member(y,dom(F)) and h <= 0) or fwd(y,F) == Cycle  
+                     then
+                     mc.c!Failed!Minus -> NBX1(n,next,F)
+                     else if not(member(y,dom(F))) then 
+                         mc.c!Isbusy!Minus -> NBX1(n, next, F) [] mc.c!Cancel!Minus -> NBX1(n,next,F)
+                     else NBX2(n,(fwd'(y,F),c,h-1),next,F)
+
 
 NBX1(n,(y,c,h),F) = 
       ring.n?y'?h'?c'!Plus -> NBX2(n,(y,c,h),(y',c',h'),F)
