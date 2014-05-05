@@ -14,6 +14,10 @@ These Group processes can be used by the higher level processes "Row" "Col" and
 "DiagAsc/Dsc" to implement the regions that should sum to groupSum.  These are
 combined into a puzzle.
 
+The best this was able to reasonably do on a 2012 Macbook Pro (16GB memory,
+ 4 x 2.4Ghz Intel cores (Hyper threaded to 8)) was n == 4 with both dfs and bfs.
+
+Compilation time grew massively for n == 5
 -}
 -- Size of magic square
 n = 4
