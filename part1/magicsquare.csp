@@ -15,24 +15,43 @@ These Group processes can be used by the higher level processes "Row" "Col" and
 combined into a puzzle.
 
 The best this was able to reasonably do on a 2012 Macbook Pro (16GB memory,
- 4 x 2.4Ghz Intel cores (Hyper threaded to 8)) was n == 4 with both dfs and bfs.
+4 x 2.4Ghz Intel Sandy Bridge (Hyper threaded to 8)) was n == 4 with both dfs
+and bfs.
 
 Compilation time grew massively for n == 5
 -}
 -- Size of magic square
-n = 4
+n = 3
 
 -- Helper functions
 -- Definition of the 1 + 2 + 3 + ... + n-1 + n can be simplified to n(n+1) / 2 
-sumOneToN(i) = (i * (i+1))/2
-groupSum = sumOneToN(n*n) /n
+triangle(i) = (i * (i+1))/2
+groupSum = triangle(n*n) /n
 
+-- generate all card(set) sized lists from set.
+listGenInternal(s, lists, 0) = lists
+listGenInternal(s, lists, order) =
+    listGenInternal(s, {x^<i> | x <- lists, i <- s, not elem(i, x)}, order - 1)
+listGen(s) = listGenInternal(s, { <x> | x <- s }, card(s) - 1)
+
+-- generate all card(set) sized sets from a set.  This helps reduce compile time
+-- as we don't need to resort to using Set() which generates all possible
+-- subsets
+setGenInternal(s, sets, 0, sum) = {i | i <- sets, listSum(seq(i)) == sum}
+setGenInternal(s, sets, size, sum) =
+    setGenInternal(s, {union(x,{i}) | x <- sets, i <- s, not member(i, x), listSum(seq(x)) + i <= sum}, size - 1, sum)
+setGen(size) = setGenInternal({1..size*size}, { {x} | x <- {1..size*size}} , size - 1, triangle(size*size) / size)
 -- return the sum of the elements of a list.
 listSum(<>) = 0
 listSum(list) = head(list) + listSum(tail(list))
 
 -- generates all possible sets of 4 that sum to groupSum.
-allGroup = {i | i <- Set({1..n*n}), card(i) == n, listSum(seq(i)) == groupSum}
+--allGroup = {i | i <- setGen({1..n*n}, n), listSum(seq(i)) == groupSum}
+allGroup = setGen(n)
+
+-- as allGroup, generate a set of lists of all possible *orders* of the above
+-- sets.
+--allOGroup = {muddle(i, j) | i <- allGroup, j <- {1..power(n,n)}}
 
 -- Moves, and a "done" signal to know when we're finished, from spec.
 channel place:positions.nums
