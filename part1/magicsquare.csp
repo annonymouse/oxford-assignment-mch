@@ -21,7 +21,7 @@ and bfs.
 Compilation time grew massively for n == 5
 -}
 -- Size of magic square
-n = 3
+n = 5
 
 -- Helper functions
 -- Definition of the 1 + 2 + 3 + ... + n-1 + n can be simplified to n(n+1) / 2 
@@ -53,6 +53,11 @@ channel done
 
 positions = {(i,j) | i <- {1..n},j<-{1..n}}
 nums = {1..n*n}
+
+-- Compression didn't help, as I cannot hide actions earlier than the top level
+-- due to the structure, and normalization doesn't improve matters very much.
+transparent normal
+compress(P) = P
 
 -- The number process constrains the numbers being used only once.
 -- As an optimization, moves are done in order, as move order doesn't affect the
@@ -96,9 +101,9 @@ Group(boxes, next, moves) =
 -- GroupStart simply initializes for a given set of boxes.  It is more or less
 -- identical to Group, however draws from the set of all possible moves adding
 -- up to groupSum.
-GroupStart(boxes) = [] b:{maxSet(x)|x<-allGroup}
+GroupStart(boxes) = compress([] b:{maxSet(x)|x<-allGroup}
                         @ Group(boxes, b,
-                            {diff(g, {b})| g<-allGroup, member(b,g)})
+                            {diff(g, {b})| g<-allGroup, member(b,g)}))
 
 -- Row/Col/Diag definitions, as a Group
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
