@@ -20,7 +20,7 @@ and bfs n==4.
 
 -}
 -- Size of magic square
-n = 5
+n = 6
 
 -- Helper functions
 -- Definition of the 1 + 2 + 3 + ... + n-1 + n can be simplified to n(n+1) / 2 
