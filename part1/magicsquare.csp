@@ -28,12 +28,6 @@ n = 5
 triangle(i) = (i * (i+1))/2
 groupSum = triangle(n*n) /n
 
--- generate all card(set) sized lists from set.
-listGenInternal(s, lists, 0) = lists
-listGenInternal(s, lists, order) =
-    listGenInternal(s, {x^<i> | x <- lists, i <- s, not elem(i, x)}, order - 1)
-listGen(s) = listGenInternal(s, { <x> | x <- s }, card(s) - 1)
-
 -- generate all card(set) sized sets from a set.  This helps reduce compile time
 -- as we don't need to resort to using Set() which generates all possible
 -- subsets
