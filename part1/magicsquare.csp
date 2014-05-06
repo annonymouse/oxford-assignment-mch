@@ -21,7 +21,7 @@ and bfs.
 Compilation time grew massively for n == 5
 -}
 -- Size of magic square
-n = 5
+n = 3
 
 -- Helper functions
 -- Definition of the 1 + 2 + 3 + ... + n-1 + n can be simplified to n(n+1) / 2 
@@ -103,8 +103,9 @@ GroupStart(boxes) = [] b:{maxSet(x)|x<-allGroup}
 -- Row/Col/Diag definitions, as a Group
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
 Col(x) = GroupStart({(x, j) | j <- {1..n}})
--- The magic square is symetrical, so we can reduce by a factor of 4 *
--- number of solutions the statemachine due to symetry by fixing the diagonals
+
+-- The magic square is symetrical, so we can reduce the 
+-- number of solutions the statemachine fixing the diagonals and one row
 -- to not search symetrical groups. (i.e. 6,5,4 is the same as 4,5,6 with
 -- rotation or reflection (or both)) We can achieve this by constraining that 
 -- only the largest value in the group set can freely move, and all others must
@@ -131,10 +132,11 @@ DiagStart(boxes) = [] b:{maxSet(x)|x<-allGroup}
 DiagAsc() = DiagStart({(i, j) | i <- {1..n}, j <- {1..n}, i == j})
 DiagDes() = DiagStart({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1})
 
--- Parrallel combination of Rows and Cols, they do not depend on each others
+-- Parrallel combination of Cols, they do not depend on each others
 -- moves given their moves are independent.  The Rows and Cols perform
--- all possible place events.
-Rows = (||| i:{2..n} @ Row(i)) ||| Row(1)
+-- all possible place events.   Rows have one fixed row to avoid rotated
+-- searches
+Rows = (||| i:{2..n} @ Row(i)) ||| DiagStart({(i,1) | i <- {1..n}})
 Cols = ||| i:{1..n} @ Col(i)
 
 -- Combination of both diagonals, in an odd sized magic square the middle box
@@ -157,11 +159,6 @@ Puzzle = ((Rows [|{|place|}|] Cols) [|DiagAlpha|] Diags ) [|{|place|}|] NumberSt
 -- done is not hidden, so the trace refinement should should the steps required
 -- to complete puzzle
 assert STOP [T= Puzzle \ {|place|}
-
-assert STOP [T= Diags \ {|place|}
-assert STOP [T= Rows \ {|place|}
-assert STOP [T= NumberStart \{|place|}
-
 
 -- To check quickly using depth first search for larger puzzles.  This works
 -- well for magic squares that are larger since there are many solutions with
