@@ -21,7 +21,7 @@ and bfs.
 Compilation time grew massively for n == 5
 -}
 -- Size of magic square
-n = 3
+n = 5
 
 -- Helper functions
 -- Definition of the 1 + 2 + 3 + ... + n-1 + n can be simplified to n(n+1) / 2 
@@ -63,13 +63,15 @@ nums = {1..n*n}
 -- The number process constrains the numbers being used only once.
 -- As an optimization, moves are done in order, as move order doesn't affect the
 -- puzzle and staves off state space explosion and compilation time.
--- Additionally, it prevents positions being played multiple times.
+-- This used to prevent positions being played multiple times, however both cols
+-- and rows process enforce this anyway so this was removed to shrink this
+-- process.
 -- Once all moves are complete, done is sent and the process recurses in order
 -- to allow Depth First Search using divergence freedom tests for larger magic
 -- squares given that there are many solutions to larger puzzles.
-Number({},0) = done -> Number({}, 0)
-Number(posis, move) = place?pos:posis!move -> Number(diff(posis, {pos}),move-1)
-NumberStart = Number(positions, n*n)
+Number(0) = done -> Number(0)
+Number(move) = place?_!move -> Number(move-1)
+NumberStart = Number(n*n)
 
 -- returns the min or max of two integers.
 min(a, b)= if a > b then b else a
@@ -107,13 +109,38 @@ GroupStart(boxes) = [] b:{maxSet(x)|x<-allGroup}
 -- Row/Col/Diag definitions, as a Group
 Row(y) = GroupStart({(i, y) | i <- {1..n}})
 Col(x) = GroupStart({(x, j) | j <- {1..n}})
-DiagAsc() = GroupStart({(i, j) | i <- {1..n}, j <- {1..n}, i == j})
-DiagDes() = GroupStart({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1})
+-- The magic square is symetrical, so we can reduce by a factor of 4 *
+-- number of solutions the statemachine due to symetry by fixing the diagonals
+-- to not search symetrical groups. (i.e. 6,5,4 is the same as 4,5,6 with
+-- rotation or reflection (or both)) We can achieve this by constraining that 
+-- only the largest value in the group set can freely move, and all others must
+-- maintain strict numerical order.
+DiagGroup(boxes, next, {{}}) = place?pos:boxes!next -> STOP
+DiagGroup(boxes, next, moves) =
+    let nextPos(s) =
+        maxSet(s)
+    within
+        place!nextPos(boxes)!next ->
+            [] b:{maxSet(x)|x<-moves}
+                @ DiagGroup(
+                    diff(boxes, {nextPos(boxes)}), b,
+                    {diff(g, {b}) |g  <- moves, member(b,g)})
+
+DiagCont(boxes, {{}}) = STOP
+DiagCont(boxes, moves) = [] b:{maxSet(x)|x<-moves} @ DiagGroup(boxes, b, {diff(g, {b}) | g <- moves, member(b,g)})
+
+DiagStart(boxes) = [] b:{maxSet(x)|x<-allGroup}
+                        @ place?pos:boxes!b ->
+                            DiagCont(diff(boxes, {pos}),
+                                {diff(g, {b}) | g<-allGroup, member(b,g)})
+
+DiagAsc() = DiagStart({(i, j) | i <- {1..n}, j <- {1..n}, i == j})
+DiagDes() = DiagStart({(i, j) | i <- {1..n}, j <- {1..n}, i + j == n+1})
 
 -- Parrallel combination of Rows and Cols, they do not depend on each others
 -- moves given their moves are independent.  The Rows and Cols perform
 -- all possible place events.
-Rows = ||| i:{1..n} @ Row(i)
+Rows = (||| i:{2..n} @ Row(i)) ||| Row(1)
 Cols = ||| i:{1..n} @ Col(i)
 
 -- Combination of both diagonals, in an odd sized magic square the middle box
@@ -136,6 +163,11 @@ Puzzle = ((Rows [|{|place|}|] Cols) [|DiagAlpha|] Diags ) [|{|place|}|] NumberSt
 -- done is not hidden, so the trace refinement should should the steps required
 -- to complete puzzle
 assert STOP [T= Puzzle \ {|place|}
+
+assert STOP [T= Diags \ {|place|}
+assert STOP [T= Rows \ {|place|}
+assert STOP [T= NumberStart \{|place|}
+
 
 -- To check quickly using depth first search for larger puzzles.  This works
 -- well for magic squares that are larger since there are many solutions with
