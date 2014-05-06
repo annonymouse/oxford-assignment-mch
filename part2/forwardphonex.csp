@@ -1,3 +1,6 @@
+{- 
+MCH assignment 2014, Part2, Busy forwarding
+-}
 
 -- forwardphone.csp
 -- Bill Roscoe, June 2012
@@ -277,6 +280,7 @@ apply(F,x) = let {y} = {y' | (x',y') <- F, x'==x}
              within y
 
 {-
+
 Forwarding is restricted to only occuring after busy events have been emitted by
 the source, so forwarding resolution can only occur after this.  In the case
 where a busy signal may have been sent previously, this script now uses the
@@ -289,15 +293,17 @@ mobile-CSP portion of the code as a result.
 If both forms of forwarding are in use at the same time the interaction would be
 odd.  Forwarded calls would always win over busy forwarding - as they would be
 applied "first".  However in the case where a busy signal where forwarding rules
-were changed mid call, so 
+were changed mid call, so :
+
     call (which has been forwarded)  -> forward -> eforward -> busy -> ...
+
 the busied call would check the forwarding status again.  This is due to the
 fact that in effect, call forwarding is applied twice, once at call time
 generally, and once when a busy signal is heard.
 
 The FDR3 debugger was relatively straight forward to use here, as the majority
 of the elements of mobile-CSP syntax were hidden.  The only issue is in the dual
-naming of channels for when mobile eventt subscription should occur meant that
+naming of channels for when mobile event subscription should occur meant that
 you need to be aware of what is going on.  Would more renaming help here?  I
 thinks this would probably interfere with the internal workings as things were
 renamed to each other.
@@ -474,7 +480,7 @@ assert NEVS(2) [T= (Network[|{|dial.1,dial.2,dial.3|}|]STOP)\diff(Events,failed)
 
 -- Shows that calls can be successfully forwarded:
 -- This is enough to show that this can only happen when busy, as the shortest
--- trace would not include "busy" from 1.1
+-- trace would not include "busy" from the forwarding phone.
 
 assert NEVS(2) [T= (Network[|{|dial.0.2,dial.1,dial.2,dial.3|}|]STOP)\diff(Events,{ringing.2})
 
