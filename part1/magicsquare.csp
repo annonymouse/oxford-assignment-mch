@@ -15,10 +15,9 @@ These Group processes can be used by the higher level processes "Row" "Col" and
 combined into a puzzle.
 
 The best this was able to reasonably do on a 2012 Macbook Pro (16GB memory,
-4 x 2.4Ghz Intel Sandy Bridge (Hyper threaded to 8)) was n == 4 with both dfs
-and bfs.
+4 x 2.4Ghz Intel Sandy Bridge (Hyper threaded to 8)) was n == 5 with both dfs
+and bfs n==4.
 
-Compilation time grew massively for n == 5
 -}
 -- Size of magic square
 n = 5
